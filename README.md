@@ -1,4 +1,11 @@
 # Mongo Phoenix
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/logocomune/phoenix)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/logocomune/phoenix/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/logocomune/phoenix)](https://pkg.go.dev/github.com/logocomune/phoenix)
+[![codecov](https://codecov.io/gh/logocomune/phoenix/graph/badge.svg?token=GGN3PHjyZV)](https://codecov.io/gh/logocomune/phoenix)
+[![Go Report Card](https://goreportcard.com/badge/github.com/logocomune/phoenix)](https://goreportcard.com/report/github.com/logocomune/phoenix)
+
+
 
 The Mongo Phoenix  is designed to facilitate 
 CRUD (Create, Read, Update, Delete) operations 
