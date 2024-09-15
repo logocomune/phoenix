@@ -10,6 +10,7 @@ const (
 	setOperator  = "$set"
 	incOperator  = "$inc"
 	addToSet     = "$addToSet"
+	setOnInsert  = "$setOnInsert"
 )
 
 type Option func(m bson.M)
@@ -48,6 +49,12 @@ func Inc(key string, value interface{}) Option {
 func AddToSet(key string, value interface{}) Option {
 	return func(m bson.M) {
 		update(m, addToSet, key, value)
+	}
+}
+
+func SetOnInsert(key string, value interface{}) Option {
+	return func(m bson.M) {
+		update(m, setOnInsert, key, value)
 	}
 }
 
