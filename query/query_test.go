@@ -11,15 +11,43 @@ func TestByKeyValue(t *testing.T) {
 		name  string
 		m     bson.M
 		key   string
-		value interface{}
+		value any
 		want  bson.M
 	}{
 		{
-			name:  "KeyValueTest",
+			name:  "StringValue",
 			m:     bson.M{},
 			key:   "key1",
 			value: "value1",
 			want:  bson.M{"key1": "value1"},
+		},
+		{
+			name:  "IntValue",
+			m:     bson.M{},
+			key:   "age",
+			value: 30,
+			want:  bson.M{"age": 30},
+		},
+		{
+			name:  "OverwriteExistingKey",
+			m:     bson.M{"key1": "old"},
+			key:   "key1",
+			value: "new",
+			want:  bson.M{"key1": "new"},
+		},
+		{
+			name:  "AddToNonEmptyMap",
+			m:     bson.M{"existing": "val"},
+			key:   "new",
+			value: true,
+			want:  bson.M{"existing": "val", "new": true},
+		},
+		{
+			name:  "NilValue",
+			m:     bson.M{},
+			key:   "field",
+			value: nil,
+			want:  bson.M{"field": nil},
 		},
 	}
 	for _, tt := range tests {
@@ -37,15 +65,36 @@ func TestInKeyValue(t *testing.T) {
 		name  string
 		m     bson.M
 		key   string
-		value interface{}
+		value any
 		want  bson.M
 	}{
 		{
-			name:  "InKeyValueTest",
+			name:  "StringSlice",
 			m:     bson.M{},
 			key:   "key2",
 			value: []string{"value2.1", "value2.2"},
 			want:  bson.M{"key2": bson.M{"$in": []string{"value2.1", "value2.2"}}},
+		},
+		{
+			name:  "IntSlice",
+			m:     bson.M{},
+			key:   "ids",
+			value: []int{1, 2, 3},
+			want:  bson.M{"ids": bson.M{"$in": []int{1, 2, 3}}},
+		},
+		{
+			name:  "OverwriteExistingKey",
+			m:     bson.M{"status": bson.M{"$in": []string{"old"}}},
+			key:   "status",
+			value: []string{"active", "pending"},
+			want:  bson.M{"status": bson.M{"$in": []string{"active", "pending"}}},
+		},
+		{
+			name:  "AddToNonEmptyMap",
+			m:     bson.M{"name": "Alice"},
+			key:   "role",
+			value: []string{"admin", "user"},
+			want:  bson.M{"name": "Alice", "role": bson.M{"$in": []string{"admin", "user"}}},
 		},
 	}
 	for _, tt := range tests {
@@ -58,8 +107,6 @@ func TestInKeyValue(t *testing.T) {
 	}
 }
 
-//Similar test functions for GTEKeyValue, GTKeyValue, LTEKeyValue, LTKeyValue
-
 func TestGenerate(t *testing.T) {
 	tests := []struct {
 		name string
@@ -67,20 +114,35 @@ func TestGenerate(t *testing.T) {
 		want bson.M
 	}{
 		{
-			name: "GenerateTest",
+			name: "NoOptions",
+			opt:  []Option{},
+			want: bson.M{},
+		},
+		{
+			name: "SingleByKeyValue",
 			opt: []Option{
-				func(m bson.M) {
-					ByKeyValue(m, "key1", "value1")
-				},
-				func(m bson.M) {
-					InKeyValue(m, "key2", []string{"value2.1", "value2.2"})
-				},
-				//Add more Options here
+				func(m bson.M) { ByKeyValue(m, "key1", "value1") },
+			},
+			want: bson.M{"key1": "value1"},
+		},
+		{
+			name: "CombinedOptions",
+			opt: []Option{
+				func(m bson.M) { ByKeyValue(m, "key1", "value1") },
+				func(m bson.M) { InKeyValue(m, "key2", []string{"value2.1", "value2.2"}) },
 			},
 			want: bson.M{
 				"key1": "value1",
 				"key2": bson.M{"$in": []string{"value2.1", "value2.2"}},
 			},
+		},
+		{
+			name: "RangeQuery",
+			opt: []Option{
+				func(m bson.M) { GTEKeyValue(m, "age", 18) },
+				func(m bson.M) { LTEKeyValue(m, "age", 65) },
+			},
+			want: bson.M{"age": bson.M{"$gte": 18, "$lte": 65}},
 		},
 	}
 	for _, tt := range tests {
@@ -97,32 +159,32 @@ func TestGTEKeyValue(t *testing.T) {
 		name  string
 		m     bson.M
 		key   string
-		value interface{}
+		value any
 		wantM bson.M
 	}{
 		{
-			name:  "Existing key",
+			name:  "ExistingKey",
 			m:     bson.M{"age": bson.M{"$gt": 18}},
 			key:   "age",
 			value: 30,
 			wantM: bson.M{"age": bson.M{"$gt": 18, "$gte": 30}},
 		},
 		{
-			name:  "New key",
+			name:  "NewKey",
 			m:     bson.M{"age": 18},
 			key:   "height",
 			value: 150,
 			wantM: bson.M{"age": 18, "height": bson.M{"$gte": 150}},
 		},
 		{
-			name:  "Empty key",
+			name:  "EmptyKey",
 			m:     bson.M{"age": 18},
 			key:   "",
 			value: 150,
 			wantM: bson.M{"age": 18, "": bson.M{"$gte": 150}},
 		},
 		{
-			name:  "Empty map",
+			name:  "EmptyMap",
 			m:     bson.M{},
 			key:   "age",
 			value: 18,
@@ -134,16 +196,17 @@ func TestGTEKeyValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			GTEKeyValue(tt.m, tt.key, tt.value)
 			if !reflect.DeepEqual(tt.wantM, tt.m) {
-				t.Errorf("GTKeyValue() = %v, want %v", tt.wantM, tt.m)
+				t.Errorf("GTEKeyValue() = %v, want %v", tt.m, tt.wantM)
 			}
 		})
 	}
 }
+
 func TestGTKeyValue(t *testing.T) {
 	type args struct {
 		m     bson.M
 		key   string
-		value interface{}
+		value any
 	}
 
 	tests := []struct {
@@ -159,27 +222,18 @@ func TestGTKeyValue(t *testing.T) {
 				value: 123,
 			},
 			want: bson.M{
-				"test": bson.M{
-					"$gt": 123,
-				},
+				"test": bson.M{"$gt": 123},
 			},
 		},
 		{
 			name: "ExistingKey",
 			args: args{
-				m: bson.M{
-					"test": bson.M{
-						"$lt": 0,
-					},
-				},
+				m:     bson.M{"test": bson.M{"$lt": 0}},
 				key:   "test",
 				value: 123,
 			},
 			want: bson.M{
-				"test": bson.M{
-					"$lt": 0,
-					"$gt": 123,
-				},
+				"test": bson.M{"$lt": 0, "$gt": 123},
 			},
 		},
 		{
@@ -190,9 +244,7 @@ func TestGTKeyValue(t *testing.T) {
 				value: 456,
 			},
 			want: bson.M{
-				"test": bson.M{
-					"$gt": 456,
-				},
+				"test": bson.M{"$gt": 456},
 			},
 		},
 	}
@@ -200,19 +252,19 @@ func TestGTKeyValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			GTKeyValue(tt.args.m, tt.args.key, tt.args.value)
-
 			if !reflect.DeepEqual(tt.args.m, tt.want) {
 				t.Errorf("GTKeyValue() = %v, want %v", tt.args.m, tt.want)
 			}
 		})
 	}
 }
+
 func TestLTEKeyValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		m     bson.M
 		key   string
-		value interface{}
+		value any
 		want  bson.M
 	}{
 		{
@@ -249,7 +301,7 @@ func TestLTEKeyValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			LTEKeyValue(tt.m, tt.key, tt.value)
 			if !reflect.DeepEqual(tt.m, tt.want) {
-				t.Errorf("got %v, want %v", tt.m, tt.want)
+				t.Errorf("LTEKeyValue() got %v, want %v", tt.m, tt.want)
 			}
 		})
 	}
@@ -260,7 +312,7 @@ func TestLTKeyValue(t *testing.T) {
 		name  string
 		input bson.M
 		key   string
-		value interface{}
+		value any
 		want  bson.M
 	}{
 		{

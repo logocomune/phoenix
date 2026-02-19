@@ -6,6 +6,32 @@ import (
 	"testing"
 )
 
+func TestWithSort(t *testing.T) {
+	tests := []struct {
+		name string
+		elem bson.E
+		want bson.D
+	}{
+		{
+			name: "AscendingSort",
+			elem: bson.E{Key: "name", Value: 1},
+			want: bson.D{{Key: "name", Value: 1}},
+		},
+		{
+			name: "DescendingSort",
+			elem: bson.E{Key: "createdAt", Value: -1},
+			want: bson.D{{Key: "createdAt", Value: -1}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := WithSort(tt.elem)(bson.D{}); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("WithSort() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestWithSorts(t *testing.T) {
 	tests := []struct {
 		name string

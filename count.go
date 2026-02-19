@@ -8,13 +8,13 @@ import (
 	"time"
 )
 
-// Count returns the number of documents in the specified collection that match the given filter query.
+// Count returns the number of documents in collectionName in db that match filterQuery.
+// A context deadline is applied using timeout.
 func Count(ctx context.Context, timeout time.Duration, db *mongo.Database, collectionName string, filterQuery bson.M, opts ...*options.CountOptions) (int64, error) {
-	collection := db.Collection(collectionName)
 	ctx, ctxClose := context.WithTimeout(ctx, timeout)
 	defer ctxClose()
 
-	countDoc, err := collection.CountDocuments(ctx, filterQuery, opts...)
+	countDoc, err := db.Collection(collectionName).CountDocuments(ctx, filterQuery, opts...)
 	if err != nil {
 		return 0, err
 	}
